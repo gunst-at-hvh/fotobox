@@ -425,16 +425,21 @@ let   delayIdx  = 1;           // default 5 s
 
 // A4 @ 300 DPI — Druckqualität
 const A4W = 2480, A4H = 3508;
-const CUT_OUTER = 94;          // ~8mm schwarzer Schnittrand
-const CUT_GAP   = 75;          // ~6mm zwischen Streifen
-const LOGO_H    = 420;         // Logo-Bereich px
-const ROW_GAP   = 8;           // Abstand zwischen Fotos
 
-// Derived
-const STRIP_W = Math.floor((A4W - 2*CUT_OUTER - 2*CUT_GAP) / 3);
-const STRIP_H = A4H - 2*CUT_OUTER;
-const PHOTO_AREA_H = STRIP_H - LOGO_H;
-const PHOTO_H = Math.floor((PHOTO_AREA_H - (SHOTS - 1) * ROW_GAP) / SHOTS);
+// Ränder:
+// OUTER = Druckerrand berücksichtigt (~5mm, die meisten Drucker brauchen 3-5mm)
+// INNER = doppelt so groß wie OUTER, weil in der Mitte geschnitten wird
+//         → 5mm auf jeder Seite der Schnittlinie
+const OUTER     = 60;   // 5mm — Außenrand (Druckerrand)
+const INNER_GAP = 120;  // 10mm — Abstand zwischen Streifen (je 5mm pro Seite des Schnitts)
+const LOGO_H    = 380;  // Logo-Bereich (~32mm)
+const ROW_GAP   = 8;    // Abstand zwischen Fotos innerhalb Streifen
+
+// Derived — exakt so dass Streifen die Seite komplett ausfüllen
+const STRIP_W       = Math.floor((A4W - 2*OUTER - 2*INNER_GAP) / 3);
+const STRIP_H       = A4H - 2*OUTER;
+const PHOTO_AREA_H  = STRIP_H - LOGO_H;
+const PHOTO_H       = Math.floor((PHOTO_AREA_H - (SHOTS-1) * ROW_GAP) / SHOTS);
 
 /* ═══════════════════════════════════════
    STATE
@@ -722,32 +727,38 @@ function buildA4() {
   ctx.imageSmoothingQuality = 'high';
   const strip = buildStrip();
 
-  // Black bg (= cutting border)
-  ctx.fillStyle = '#000';
+  // Weißer Hintergrund — sauber schneidbar, kein schwarzer Balken
+  ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, A4W, A4H);
 
+  // 3 identische Streifen platzieren
   for (let col = 0; col < 3; col++) {
-    const sx = CUT_OUTER + col * (STRIP_W + CUT_GAP);
-    ctx.drawImage(strip, sx, CUT_OUTER);
-
-    // Scissor mark top + bottom of strip
-    ctx.fillStyle = 'rgba(255,255,255,0.2)';
-    ctx.font = `${CUT_OUTER * .45}px sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.fillText('✂', sx + STRIP_W / 2, CUT_OUTER * .78);
-    ctx.fillText('✂', sx + STRIP_W / 2, A4H - CUT_OUTER * .22);
+    const sx = OUTER + col * (STRIP_W + INNER_GAP);
+    ctx.drawImage(strip, sx, OUTER);
   }
 
-  // Vertical cut labels between strips
+  // Schnittlinien: dünne gestrichelte Linie genau in der Mitte des Abstands
+  ctx.save();
+  ctx.setLineDash([12, 8]);
+  ctx.strokeStyle = 'rgba(180,180,180,0.7)';
+  ctx.lineWidth = 2;
   for (let i = 0; i < 2; i++) {
-    const cx = CUT_OUTER + (i + 1) * STRIP_W + (i + 1) * CUT_GAP - CUT_GAP / 2;
-    ctx.save();
-    ctx.translate(cx, A4H / 2); ctx.rotate(-Math.PI / 2);
-    ctx.fillStyle = 'rgba(255,255,255,.12)';
-    ctx.font = `${CUT_GAP * .22}px monospace`;
-    ctx.textAlign = 'center';
-    ctx.fillText('SCHNEIDEN · CUT · SCHNEIDEN · CUT · SCHNEIDEN · CUT', 0, 0);
-    ctx.restore();
+    const cx = OUTER + (i + 1) * STRIP_W + (i + 1) * INNER_GAP - INNER_GAP / 2;
+    ctx.beginPath();
+    ctx.moveTo(cx, OUTER * 0.3);
+    ctx.lineTo(cx, A4H - OUTER * 0.3);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Kleine Scherensymbole an Schnittlinien oben + unten
+  ctx.fillStyle = 'rgba(160,160,160,0.8)';
+  ctx.font = `${Math.round(OUTER * 0.55)}px sans-serif`;
+  ctx.textAlign = 'center';
+  for (let i = 0; i < 2; i++) {
+    const cx = OUTER + (i + 1) * STRIP_W + (i + 1) * INNER_GAP - INNER_GAP / 2;
+    ctx.fillText('✂', cx, OUTER * 0.72);
+    ctx.fillText('✂', cx, A4H - OUTER * 0.15);
   }
 }
 
