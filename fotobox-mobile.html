@@ -107,11 +107,14 @@ video#vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;disp
 
 <header>
   <div class="brand">Foto<em>box</em></div>
-  <div class="drow">
-    <button onclick="chDelay(-1)">−</button>
-    <span id="dval">5 s</span>
-    <button onclick="chDelay(1)">+</button>
-    Vorlauf
+  <div style="display:flex;align-items:center;gap:.6rem">
+    <button id="btn-flip" onclick="flipCam()" style="width:36px;height:36px;border-radius:50%;border:1px solid var(--dim);background:transparent;color:var(--cream);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center" title="Kamera wechseln">🔄</button>
+    <div class="drow">
+      <button onclick="chDelay(-1)">−</button>
+      <span id="dval">5 s</span>
+      <button onclick="chDelay(1)">+</button>
+      Vorlauf
+    </div>
   </div>
 </header>
 
@@ -243,15 +246,28 @@ function toggleVib(){
 }
 
 /* ─── KAMERA ────────────────────────────────── */
+let camFacing = 'user'; // 'user' = Front, 'environment' = Back
+
 async function startCam(){
+  // Vorherigen Stream stoppen falls vorhanden
+  if(vid.srcObject) vid.srcObject.getTracks().forEach(t=>t.stop());
   try{
     const s=await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:'user',width:{ideal:3840},height:{ideal:2160}},audio:false
+      video:{facingMode:camFacing,width:{ideal:3840},height:{ideal:2160}},audio:false
     });
     vid.srcObject=s; await vid.play();
+    // Spiegelung nur bei Frontkamera
+    vid.style.transform = camFacing==='user' ? 'scaleX(-1)' : 'none';
     setS('Bereit — Tippe den Auslöser','');
     document.getElementById('btn-shoot').disabled=false;
   }catch(e){ setS('Kamera nicht verfügbar','err') }
+}
+
+function flipCam(){
+  camFacing = camFacing==='user' ? 'environment' : 'user';
+  const btn = document.getElementById('btn-flip');
+  btn.style.transform = camFacing==='environment' ? 'scaleX(-1)' : '';
+  startCam();
 }
 
 /* ─── CAPTURE ───────────────────────────────────
@@ -261,10 +277,16 @@ function captureFrame(){
   const c=document.createElement('canvas');
   c.width=vW; c.height=vH;
   const ctx=c.getContext('2d',{willReadFrequently:true});
-  ctx.save(); ctx.translate(vW,0); ctx.scale(-1,1);
-  ctx.drawImage(vid,0,0,vW,vH);
-  ctx.restore();
-  applyFilter(ctx,vW,vH);   // ← filter applied AFTER draw, per pixel
+  if(camFacing==='user'){
+    // Frontkamera: gespiegelt zeichnen (Selfie-Ansicht)
+    ctx.save(); ctx.translate(vW,0); ctx.scale(-1,1);
+    ctx.drawImage(vid,0,0,vW,vH);
+    ctx.restore();
+  } else {
+    // Rückkamera: normal
+    ctx.drawImage(vid,0,0,vW,vH);
+  }
+  applyFilter(ctx,vW,vH);
   return c;
 }
 
@@ -403,12 +425,115 @@ function buildResult(){
   document.getElementById('result').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
-/* ─── DRUCKEN ───────────────────────────────── */
-function doPrint(){
-  const a4=document.getElementById('a4c');
-  document.getElementById('pimg').src=a4.toDataURL('image/jpeg',0.97);
-  document.getElementById('psheet').style.display='block';
-  setTimeout(()=>{window.print();setTimeout(()=>{document.getElementById('psheet').style.display='none'},1200)},350);
+/* ─── DRUCKEN ───────────────────────────────────────────────────
+   Kein JPEG-Foto-Print (falsche Skalierung auf iOS).
+   Stattdessen: HTML mit mm-Einheiten → browser druckt als Dokument.
+
+   WICHTIG: Alles synchron (toDataURL statt toBlob) damit
+   window.open() noch im User-Gesture-Kontext liegt → iOS lässt es durch.
+
+   Layout (mm):
+   A4: 210 × 297mm
+   Außenrand: 5mm je Seite → Innenbereich: 200 × 287mm
+   Abstand zwischen Streifen: 10mm (je 5mm Schnittzugabe)
+   Streifen-Breite: (200 - 2×10) / 3 = 60mm
+   Streifen-Höhe: 287mm
+   Logo-Bereich: 32mm (unten)
+   4 Fotos: (287 - 32) / 4 = 63.75mm je Foto
+────────────────────────────────────────────────────────────────── */
+function doPrint() {
+  if (!frames.length) return;
+
+  // ① Frames als Data-URLs — synchron, kein async-Gap
+  const fUrls = frames.map(c => c.toDataURL('image/jpeg', 0.92));
+
+  // ② Logo-URL (falls vorhanden)
+  let logoUrl = '';
+  if (logoImg) {
+    const lc = document.createElement('canvas');
+    lc.width = logoImg.width; lc.height = logoImg.height;
+    lc.getContext('2d').drawImage(logoImg, 0, 0);
+    logoUrl = lc.toDataURL('image/png');
+  }
+
+  // ③ Ein Streifen als HTML (3× wiederholt)
+  const strip = `<div class="strip">
+    ${fUrls.map(u => `<div class="photo"><img src="${u}"></div>`).join('')}
+    <div class="logo">${logoUrl
+      ? `<img src="${logoUrl}">`
+      : `<div class="logo-ph">LOGO</div>`
+    }</div>
+  </div>`;
+
+  // ④ Vollständiges A4-HTML mit mm-Einheiten
+  const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  @page{margin:0;size:210mm 297mm portrait}
+  html{width:210mm;height:297mm;overflow:hidden}
+  body{
+    width:210mm;height:297mm;overflow:hidden;
+    background:white;display:flex;flex-direction:row;
+    padding:5mm;gap:10mm;
+    page-break-inside:avoid;break-inside:avoid;
+  }
+  .strip{
+    width:60mm;height:287mm;flex-shrink:0;
+    display:flex;flex-direction:column;overflow:hidden;
+    page-break-inside:avoid;break-inside:avoid;
+  }
+  .photo{
+    flex:1;overflow:hidden;min-height:0;
+    /* Cover-crop: Bild füllt Zelle komplett */
+  }
+  .photo img{
+    width:100%;height:100%;
+    object-fit:cover;display:block;
+  }
+  .logo{
+    height:32mm;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    overflow:hidden;
+  }
+  .logo img{max-width:90%;max-height:90%;object-fit:contain;display:block}
+  .logo-ph{
+    font-family:sans-serif;font-size:11pt;color:#ccc;
+    border:1px dashed #e0e0e0;padding:6mm 12mm;
+  }
+  /* Schnittlinie zwischen Streifen */
+  .strip:not(:last-child)::after{
+    /* Kein echter Inhalt — Schnittlinie ist der Abstand (gap:10mm) */
+    content:'';
+  }
+</style>
+</head>
+<body>
+  ${strip}${strip}${strip}
+  <script>
+    // Drucken sobald alle Bilder geladen
+    var imgs=document.images, total=imgs.length, loaded=0;
+    function tryPrint(){if(++loaded>=total)window.print();}
+    if(total===0){window.print();}
+    else{for(var i=0;i<total;i++){
+      if(imgs[i].complete)tryPrint();
+      else imgs[i].onload=imgs[i].onerror=tryPrint;
+    }}
+  <\/script>
+</body>
+</html>`;
+
+  // ⑤ Neues Fenster synchron öffnen — noch im User-Gesture-Kontext → iOS erlaubt es
+  const w = window.open('', '_blank');
+  if (w) {
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+  } else {
+    // Popup geblockt: Bild als JPEG teilen → Nutzer druckt aus Fotos
+    setS('Popup blockiert — bitte "Lokal speichern" → aus Fotos drucken', 'err');
+  }
 }
 
 /* ─── NEXTCLOUD UPLOAD (WebDAV auf Public Share) */
