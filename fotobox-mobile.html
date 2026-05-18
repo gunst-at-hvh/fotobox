@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Fotobox</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  --ink:    #0e0c0a;
+  --cream:  #f2ead8;
+  --warm:   #e8dfc4;
+  --amber:  #c8780a;
+  --amber2: #e8951a;
+  --red:    #b02010;
+  --muted:  #7a6a50;
+  --border: #2a2010;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  background: var(--ink);
+  color: var(--cream);
+  font-family: 'DM Mono', monospace;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  touch-action: manipulation;
+}
+
+/* ── HEADER ───────────────────────────── */
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .9rem 1.1rem .7rem;
+  border-bottom: 1px solid var(--border);
+}
+.brand {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.35rem; letter-spacing: .04em;
+  color: var(--amber);
+}
+.brand em { font-style: italic; color: var(--cream); font-size: .9em; }
+.delay-ctrl {
+  display: flex; align-items: center; gap: .5rem;
+  font-size: .6rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted);
+}
+.delay-ctrl button {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 1px solid var(--border); background: transparent;
+  color: var(--cream); font-size: .9rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s;
+}
+.delay-ctrl button:active { background: var(--border); }
+#delay-val { color: var(--amber); font-weight: 500; min-width: 2.2rem; text-align: center; }
+
+/* ── VIEWFINDER ───────────────────────── */
+.vf-wrap {
+  position: relative;
+  width: 100%; max-width: 480px;
+  margin: .8rem auto 0;
+  padding: 0 .8rem;
+}
+.vf-box {
+  position: relative;
+  width: 100%; aspect-ratio: 3/4;
+  background: #000;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,.7);
+}
+
+/* Corner marks */
+.vf-box::before, .vf-box::after {
+  content: ''; position: absolute;
+  width: 20px; height: 20px;
+  border-color: var(--amber); border-style: solid; z-index: 5;
+  pointer-events: none;
+}
+.vf-box::before { top: 10px; left: 10px; border-width: 2px 0 0 2px; border-radius: 2px 0 0 0; }
+.vf-box::after  { bottom: 10px; right: 10px; border-width: 0 2px 2px 0; border-radius: 0 0 2px 0; }
+
+video#vid {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
+  transform: scaleX(-1);
+  transition: filter .3s;
+}
+
+canvas#live-c {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
+  pointer-events: none;
+}
+
+/* COUNTDOWN OVERLAY */
+.cd-overlay {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,.35);
+  z-index: 10; pointer-events: none;
+  opacity: 0; transition: opacity .15s;
+}
+.cd-overlay.show { opacity: 1; }
+.cd-num {
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(6rem, 28vw, 9rem);
+  color: #fff;
+  text-shadow: 0 4px 24px rgba(0,0,0,.8);
+  animation: pulse-num .9s ease-in-out infinite;
+}
+@keyframes pulse-num {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.06); }
+}
+
+/* READY overlay */
+.rdy-overlay {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: rgba(0,0,0,.3); z-index: 9;
+  pointer-events: none; opacity: 0; transition: opacity .2s;
+}
+.rdy-overlay.show { opacity: 1; }
+.rdy-word {
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(4rem, 20vw, 7rem);
+  color: #fff; font-style: italic;
+  text-shadow: 0 4px 20px rgba(0,0,0,.8);
+  animation: readybeat .5s ease-in-out infinite alternate;
+}
+.rdy-sub { font-size: .65rem; letter-spacing: .3em; text-transform: uppercase; color: rgba(255,255,255,.55); margin-top: .4rem; }
+@keyframes readybeat { from { transform: scale(1); } to { transform: scale(1.05); } }
+
+/* FLASH */
+.flash {
+  position: absolute; inset: 0; background: #fff;
+  opacity: 0; pointer-events: none; z-index: 20;
+  transition: opacity .04s;
+}
+.flash.on { opacity: 1; }
+
+/* MINI PREVIEW strip (during shooting) */
+.mini-frames {
+  position: absolute; right: 8px; bottom: 8px;
+  display: flex; flex-direction: column; gap: 3px;
+  z-index: 8; pointer-events: none;
+}
+.mf {
+  width: 38px; height: 42px;
+  border: 1.5px solid rgba(255,255,255,.2);
+  border-radius: 2px; background: #111; overflow: hidden;
+  transition: border-color .3s;
+}
+.mf.active { border-color: var(--amber); box-shadow: 0 0 8px rgba(200,120,10,.5); }
+.mf.done   { border-color: rgba(255,255,255,.5); }
+.mf canvas { width: 100%; height: 100%; display: block; object-fit: cover; }
+
+/* ── SHOT DOTS ────────────────────────── */
+.shot-dots {
+  display: flex; justify-content: center; gap: 10px;
+  margin: .85rem auto .1rem;
+}
+.sdot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--border); border: 1.5px solid #3a2a10;
+  transition: all .25s;
+}
+.sdot.active { background: var(--red); border-color: var(--red); animation: blink .5s infinite; }
+.sdot.done   { background: var(--amber); border-color: var(--amber); }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+
+/* ── FILTER TOGGLES ───────────────────── */
+.filter-row {
+  display: flex; justify-content: center; gap: .5rem;
+  margin: .75rem .8rem .1rem;
+}
+.ftog {
+  flex: 1; max-width: 130px;
+  padding: .55rem .5rem;
+  border: 1px solid var(--border); border-radius: 3px;
+  background: transparent; color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  font-size: .6rem; letter-spacing: .15em; text-transform: uppercase;
+  cursor: pointer; transition: all .2s;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+}
+.ftog .ico { font-size: 1.2rem; line-height: 1; }
+.ftog:active { transform: scale(.96); }
+.ftog.on {
+  border-color: var(--amber2);
+  background: rgba(200,120,10,.12);
+  color: var(--amber2);
+}
+
+/* ── SHUTTER BUTTON ───────────────────── */
+.shutter-wrap {
+  display: flex; justify-content: center;
+  margin: .9rem 0 .6rem;
+}
+#btn-shoot {
+  width: 76px; height: 76px;
+  border-radius: 50%;
+  border: 3px solid var(--amber);
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  transition: all .15s;
+  flex-shrink: 0;
+}
+#btn-shoot::after {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  background: var(--amber);
+  transition: all .15s;
+}
+#btn-shoot:active::after  { inset: 8px; }
+#btn-shoot:disabled { opacity: .3; cursor: default; }
+#btn-shoot:disabled::after { background: #555; }
+
+.shoot-label {
+  text-align: center; font-size: .55rem;
+  letter-spacing: .2em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: .6rem;
+}
+
+/* ── LOGO UPLOAD ──────────────────────── */
+.logo-section {
+  margin: .4rem .8rem .8rem;
+  border: 1px dashed var(--border); border-radius: 3px;
+  padding: .65rem 1rem;
+  display: flex; align-items: center; gap: .8rem;
+  cursor: pointer; position: relative; overflow: hidden;
+}
+.logo-section:active { background: rgba(255,255,255,.03); }
+.logo-preview {
+  width: 48px; height: 24px;
+  border: 1px solid var(--border); border-radius: 2px;
+  background: #1a1510; display: flex; align-items: center; justify-content: center;
+  overflow: hidden; flex-shrink: 0;
+}
+.logo-preview img { max-width: 100%; max-height: 100%; object-fit: contain; display: none; }
+.logo-preview span { font-size: .5rem; color: var(--muted); letter-spacing: .05em; }
+.logo-txt { font-size: .58rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.logo-txt b { display: block; color: var(--cream); margin-bottom: 1px; }
+#logo-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+/* ── RESULT ───────────────────────────── */
+.result-wrap {
+  display: none;
+  padding: .8rem;
+}
+.result-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1rem; color: var(--amber); font-style: italic;
+  text-align: center; margin-bottom: .6rem;
+}
+.strip-thumb {
+  width: 100%; max-width: 360px;
+  display: block; margin: 0 auto .8rem;
+  border-radius: 2px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.5);
+}
+.result-btns {
+  display: flex; flex-direction: column; gap: .55rem;
+  max-width: 360px; margin: 0 auto;
+}
+.rbtn {
+  display: block; width: 100%;
+  padding: .85rem 1rem;
+  font-family: 'DM Mono', monospace;
+  font-size: .65rem; letter-spacing: .2em; text-transform: uppercase;
+  border: 1px solid; border-radius: 3px;
+  background: transparent; cursor: pointer;
+  transition: all .18s; text-align: center;
+}
+.rbtn:active { transform: scale(.98); }
+.rbtn-print { border-color: var(--amber); color: var(--amber); }
+.rbtn-print:active { background: var(--amber); color: var(--ink); }
+.rbtn-save  { border-color: #3a8; color: #3a8; }
+.rbtn-save:active  { background: #3a8; color: var(--ink); }
+.rbtn-again { border-color: var(--border); color: var(--muted); }
+.rbtn-again:active { background: var(--border); }
+
+/* ── STATUS ───────────────────────────── */
+.status-bar {
+  text-align: center; font-size: .55rem;
+  letter-spacing: .15em; text-transform: uppercase;
+  color: var(--muted); padding: .4rem; min-height: 1.4rem;
+}
+
+/* ── PRINT ────────────────────────────── */
+#a4c { display: none; }
+#psheet { display: none; position: fixed; inset: 0; background: #fff; z-index: 9999; }
+#psheet img { width: 100%; height: 100%; object-fit: contain; }
+@media print {
+  body > * { display: none !important; }
+  #psheet   { display: block !important; }
+  @page { margin: 0; size: A4 portrait; }
+  #psheet img { width: 100vw; height: 100vh; object-fit: contain; }
+}
+
+/* ── SAFARI CAMERA NOTE ───────────────── */
+.cam-note {
+  font-size: .58rem; letter-spacing: .1em; line-height: 1.7;
+  color: var(--muted); text-align: center; padding: .5rem 1rem;
+  display: none;
+}
+.cam-note a { color: var(--amber); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">Foto<em>box</em></div>
+  <div class="delay-ctrl">
+    <button onclick="changeDelay(-1)">−</button>
+    <span id="delay-val">5 s</span>
+    <button onclick="changeDelay(1)">+</button>
+  </div>
+</header>
+
+<!-- Viewfinder -->
+<div class="vf-wrap">
+  <div class="vf-box" id="vf">
+    <video id="vid" autoplay playsinline muted></video>
+    <canvas id="live-c"></canvas>
+
+    <div class="cd-overlay" id="cd-ov">
+      <span class="cd-num" id="cd-num">3</span>
+    </div>
+    <div class="rdy-overlay" id="rdy-ov">
+      <div class="rdy-word">Ready?</div>
+      <div class="rdy-sub" id="rdy-sub"></div>
+    </div>
+    <div class="flash" id="flash"></div>
+
+    <!-- Mini frame previews -->
+    <div class="mini-frames">
+      <div class="mf" id="mf0"></div>
+      <div class="mf" id="mf1"></div>
+      <div class="mf" id="mf2"></div>
+      <div class="mf" id="mf3"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Shot dots -->
+<div class="shot-dots">
+  <div class="sdot" id="sd0"></div>
+  <div class="sdot" id="sd1"></div>
+  <div class="sdot" id="sd2"></div>
+  <div class="sdot" id="sd3"></div>
+</div>
+
+<!-- Filter toggles -->
+<div class="filter-row">
+  <button class="ftog" id="ftog-bw" onclick="toggleBW()">
+    <span class="ico">◑</span>Schwarz/Weiß
+  </button>
+  <button class="ftog" id="ftog-vib" onclick="toggleVibrant()">
+    <span class="ico">✦</span>Vibrant
+  </button>
+</div>
+
+<!-- Shutter -->
+<div class="shutter-wrap">
+  <button id="btn-shoot" disabled onclick="shoot()"></button>
+</div>
+<div class="shoot-label" id="shoot-label">4 Fotos aufnehmen</div>
+
+<!-- Logo upload -->
+<div class="logo-section" id="logo-sec">
+  <div class="logo-preview" id="logo-preview">
+    <img id="logo-img" src="" alt="">
+    <span id="logo-ph">LOGO</span>
+  </div>
+  <div class="logo-txt">
+    <b>Logo einfügen</b>
+    Erscheint unten auf jedem Streifen
+  </div>
+  <input type="file" id="logo-input" accept="image/*" onchange="loadLogo(event)">
+</div>
+
+<!-- Status -->
+<div class="status-bar" id="status">Kamera wird gestartet …</div>
+
+<!-- Camera note (shown on error) -->
+<div class="cam-note" id="cam-note">
+  Kamera-Zugriff benötigt HTTPS.<br>
+  Starte lokal: <code>python -m http.server 8080</code><br>
+  Dann im iPhone-Browser: <a>http://[PC-IP]:8080</a>
+</div>
+
+<!-- Result -->
+<div class="result-wrap" id="result-wrap">
+  <div class="result-title">Dein Streifen ✦</div>
+  <canvas id="strip-thumb" class="strip-thumb"></canvas>
+  <div class="result-btns">
+    <button class="rbtn rbtn-print" onclick="doPrint()">🖨 Drucken · 3× auf A4</button>
+    <button class="rbtn rbtn-save"  onclick="doSave()">↓ Als JPG speichern</button>
+    <button class="rbtn rbtn-again" onclick="resetAll()">↺ Nochmal</button>
+  </div>
+</div>
+
+<!-- Hidden canvases -->
+<canvas id="a4c"></canvas>
+<div id="psheet"><img id="pimg" src="" alt=""></div>
+
+<script>
+/* ═══════════════════════════════════════
+   CONFIG
+═══════════════════════════════════════ */
+const SHOTS     = 4;
+const DELAYS    = [3, 5, 10];
+let   delayIdx  = 1;           // default 5 s
+
+// A4 @ 300 DPI — Druckqualität
+const A4W = 2480, A4H = 3508;
+const CUT_OUTER = 94;          // ~8mm schwarzer Schnittrand
+const CUT_GAP   = 75;          // ~6mm zwischen Streifen
+const LOGO_H    = 420;         // Logo-Bereich px
+const ROW_GAP   = 8;           // Abstand zwischen Fotos
+
+// Derived
+const STRIP_W = Math.floor((A4W - 2*CUT_OUTER - 2*CUT_GAP) / 3);
+const STRIP_H = A4H - 2*CUT_OUTER;
+const PHOTO_AREA_H = STRIP_H - LOGO_H;
+const PHOTO_H = Math.floor((PHOTO_AREA_H - (SHOTS - 1) * ROW_GAP) / SHOTS);
+
+/* ═══════════════════════════════════════
+   STATE
+═══════════════════════════════════════ */
+let isBW      = false;
+let isVibrant = false;
+let busy      = false;
+let frames    = [];          // captured canvases
+let logoImage = null;        // uploaded logo Image object
+
+/* ═══════════════════════════════════════
+   DOM
+═══════════════════════════════════════ */
+const vid       = document.getElementById('vid');
+const liveC     = document.getElementById('live-c');
+const vfBox     = document.getElementById('vf');
+const flashEl   = document.getElementById('flash');
+const cdOv      = document.getElementById('cd-ov');
+const cdNum     = document.getElementById('cd-num');
+const rdyOv     = document.getElementById('rdy-ov');
+const rdySub    = document.getElementById('rdy-sub');
+const btnShoot  = document.getElementById('btn-shoot');
+const status    = document.getElementById('status');
+const resultWrap= document.getElementById('result-wrap');
+const stripThumb= document.getElementById('strip-thumb');
+const a4c       = document.getElementById('a4c');
+const pimg      = document.getElementById('pimg');
+const psheet    = document.getElementById('psheet');
+
+/* ═══════════════════════════════════════
+   DELAY
+═══════════════════════════════════════ */
+function changeDelay(d) {
+  delayIdx = ((delayIdx + d) % DELAYS.length + DELAYS.length) % DELAYS.length;
+  document.getElementById('delay-val').textContent = DELAYS[delayIdx] + ' s';
+}
+
+/* ═══════════════════════════════════════
+   FILTER TOGGLES
+═══════════════════════════════════════ */
+function toggleBW() {
+  isBW = !isBW;
+  if (isBW && isVibrant) { isVibrant = false; document.getElementById('ftog-vib').classList.remove('on'); }
+  document.getElementById('ftog-bw').classList.toggle('on', isBW);
+  updateVideoFilter();
+}
+function toggleVibrant() {
+  isVibrant = !isVibrant;
+  if (isVibrant && isBW) { isBW = false; document.getElementById('ftog-bw').classList.remove('on'); }
+  document.getElementById('ftog-vib').classList.toggle('on', isVibrant);
+  updateVideoFilter();
+}
+function updateVideoFilter() {
+  if (isBW)        vid.style.filter = 'grayscale(1) contrast(1.55) brightness(.95)';
+  else if (isVibrant) vid.style.filter = 'saturate(1.4) contrast(1.08) brightness(1.02)';
+  else             vid.style.filter = 'none';
+}
+function getCtxFilter() {
+  if (isBW)        return 'grayscale(1) contrast(1.55) brightness(.95)';
+  if (isVibrant)   return 'saturate(1.4) contrast(1.08) brightness(1.02)';
+  return 'none';
+}
+
+/* ═══════════════════════════════════════
+   CAMERA
+═══════════════════════════════════════ */
+async function startCam() {
+  try {
+    const s = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: 'user',
+        width:  { ideal: 3840 },   // max possible — browser wählt was geht
+        height: { ideal: 2160 }
+      },
+      audio: false
+    });
+    vid.srcObject = s;
+    await vid.play();
+    // Mirror via CSS (already done), live-c not needed for live preview
+    // We use the video element directly with CSS filter
+    liveC.style.display = 'none'; // hide canvas overlay during live view
+    setStatus('Bereit — Tippe den Auslöser');
+    btnShoot.disabled = false;
+  } catch(e) {
+    setStatus('Kamera nicht verfügbar');
+    document.getElementById('cam-note').style.display = 'block';
+  }
+}
+
+/* ═══════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════ */
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function setStatus(t) { status.textContent = t; }
+
+function setDot(i, state) {
+  const el = document.getElementById('sd' + i);
+  el.className = 'sdot' + (state==='active'?' active':state==='done'?' done':'');
+}
+function setMF(i, state, src) {
+  const el = document.getElementById('mf' + i);
+  el.className = 'mf' + (state==='active'?' active':state==='done'?' done':'');
+  if (src) {
+    // Draw mini thumbnail
+    el.innerHTML = '';
+    const tc = document.createElement('canvas');
+    tc.style.cssText = 'width:100%;height:100%;display:block;object-fit:cover';
+    tc.width = 76; tc.height = 84;
+    const ctx = tc.getContext('2d');
+    // cover crop
+    const s = Math.max(tc.width / src.width, tc.height / src.height);
+    const dw = src.width * s, dh = src.height * s;
+    ctx.drawImage(src, (tc.width - dw) / 2, (tc.height - dh) / 2, dw, dh);
+    el.appendChild(tc);
+  }
+}
+
+/* ═══════════════════════════════════════
+   CAPTURE FRAME
+═══════════════════════════════════════ */
+function captureFrame() {
+  const vW = vid.videoWidth  || 640;
+  const vH = vid.videoHeight || 480;
+  const c = document.createElement('canvas');
+  c.width = vW; c.height = vH;
+  const ctx = c.getContext('2d');
+  // Apply CSS-style filter via canvas filter API
+  ctx.filter = getCtxFilter();
+  ctx.save();
+  ctx.translate(vW, 0); ctx.scale(-1, 1); // mirror
+  ctx.drawImage(vid, 0, 0, vW, vH);
+  ctx.restore();
+  ctx.filter = 'none';
+  return c;
+}
+
+/* ═══════════════════════════════════════
+   FLASH + COUNTDOWN
+═══════════════════════════════════════ */
+async function doFlash() {
+  flashEl.classList.add('on');
+  await sleep(65);
+  flashEl.classList.remove('on');
+}
+
+async function countdown(secs) {
+  cdOv.classList.add('show');
+  for (let s = secs; s >= 1; s--) {
+    cdNum.textContent = s;
+    await sleep(900);
+  }
+  cdOv.classList.remove('show');
+  await sleep(100);
+}
+
+/* ═══════════════════════════════════════
+   SHOOT SESSION (4 photos)
+═══════════════════════════════════════ */
+async function shoot() {
+  if (busy || btnShoot.disabled) return;
+  busy = true; frames = [];
+  const delay = DELAYS[delayIdx];
+
+  btnShoot.disabled = true;
+  resultWrap.style.display = 'none';
+
+  // Reset dots + mini frames
+  for (let i = 0; i < SHOTS; i++) { setDot(i, ''); setMF(i, '', null); }
+
+  for (let i = 0; i < SHOTS; i++) {
+    setDot(i, 'active');
+    setMF(i, 'active', null);
+
+    // Show READY? (only from 2nd shot)
+    if (i > 0) {
+      rdySub.textContent = `Foto ${i + 1} von ${SHOTS}`;
+      rdyOv.classList.add('show');
+      setStatus(`Foto ${i + 1} — Ready?`);
+      await sleep(1200);
+      rdyOv.classList.remove('show');
+      await sleep(120);
+    } else {
+      setStatus(`Foto 1 von ${SHOTS} — Countdown`);
+    }
+
+    await countdown(delay);
+    await doFlash();
+    const f = captureFrame();
+    frames.push(f);
+    setDot(i, 'done');
+    setMF(i, 'done', f);
+    await sleep(350);
+  }
+
+  setStatus('Fertig!');
+  buildResult();
+  busy = false;
+  btnShoot.disabled = false;
+}
+
+/* ═══════════════════════════════════════
+   LOGO
+═══════════════════════════════════════ */
+function loadLogo(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      logoImage = img;
+      const preview = document.getElementById('logo-img');
+      preview.src = ev.target.result;
+      preview.style.display = 'block';
+      document.getElementById('logo-ph').style.display = 'none';
+      // Rebuild if already shot
+      if (frames.length === SHOTS) buildResult();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(f);
+}
+
+/* ═══════════════════════════════════════
+   BUILD STRIP CANVAS (1 strip)
+   Returns a canvas of STRIP_W × STRIP_H
+═══════════════════════════════════════ */
+function buildStrip() {
+  const c = document.createElement('canvas');
+  c.width = STRIP_W; c.height = STRIP_H;
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
+  // White bg
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, STRIP_W, STRIP_H);
+
+  // 4 photos
+  frames.forEach((src, i) => {
+    const py = i * (PHOTO_H + ROW_GAP);
+    // Cover crop
+    const sw = src.width, sh = src.height;
+    const sc = Math.max(STRIP_W / sw, PHOTO_H / sh);
+    const dw = sw * sc, dh = sh * sc;
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0, py, STRIP_W, PHOTO_H); ctx.clip();
+    ctx.drawImage(src, (STRIP_W - dw) / 2, py + (PHOTO_H - dh) / 2, dw, dh);
+    ctx.restore();
+  });
+
+  // Logo area
+  const ly = PHOTO_AREA_H;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, ly, STRIP_W, LOGO_H);
+
+  if (logoImage) {
+    // Center logo, max 80% width, 80% height of logo area
+    const maxW = STRIP_W * 0.8, maxH = LOGO_H * 0.75;
+    const sc = Math.min(maxW / logoImage.width, maxH / logoImage.height);
+    const lw = logoImage.width * sc, lh = logoImage.height * sc;
+    ctx.drawImage(logoImage, (STRIP_W - lw) / 2, ly + (LOGO_H - lh) / 2, lw, lh);
+  } else {
+    // Placeholder dashed border
+    ctx.setLineDash([6, 4]);
+    ctx.strokeStyle = '#ddd';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(STRIP_W * .08, ly + LOGO_H * .12, STRIP_W * .84, LOGO_H * .76);
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#ccc';
+    ctx.font = `${Math.round(LOGO_H * .18)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText('LOGO', STRIP_W / 2, ly + LOGO_H * .58);
+  }
+
+  return c;
+}
+
+/* ═══════════════════════════════════════
+   BUILD A4 (3 identical strips)
+═══════════════════════════════════════ */
+function buildA4() {
+  a4c.width = A4W; a4c.height = A4H;
+  const ctx = a4c.getContext('2d');
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  const strip = buildStrip();
+
+  // Black bg (= cutting border)
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, A4W, A4H);
+
+  for (let col = 0; col < 3; col++) {
+    const sx = CUT_OUTER + col * (STRIP_W + CUT_GAP);
+    ctx.drawImage(strip, sx, CUT_OUTER);
+
+    // Scissor mark top + bottom of strip
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.font = `${CUT_OUTER * .45}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText('✂', sx + STRIP_W / 2, CUT_OUTER * .78);
+    ctx.fillText('✂', sx + STRIP_W / 2, A4H - CUT_OUTER * .22);
+  }
+
+  // Vertical cut labels between strips
+  for (let i = 0; i < 2; i++) {
+    const cx = CUT_OUTER + (i + 1) * STRIP_W + (i + 1) * CUT_GAP - CUT_GAP / 2;
+    ctx.save();
+    ctx.translate(cx, A4H / 2); ctx.rotate(-Math.PI / 2);
+    ctx.fillStyle = 'rgba(255,255,255,.12)';
+    ctx.font = `${CUT_GAP * .22}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.fillText('SCHNEIDEN · CUT · SCHNEIDEN · CUT · SCHNEIDEN · CUT', 0, 0);
+    ctx.restore();
+  }
+}
+
+/* ═══════════════════════════════════════
+   RESULT: SHOW THUMB + BUILD A4
+═══════════════════════════════════════ */
+function buildResult() {
+  buildA4();
+
+  // Thumbnail: draw strip at 1/4 scale — sharp enough for preview
+  const strip = buildStrip();
+  const sc = 0.25;
+  stripThumb.width  = Math.round(STRIP_W * sc);
+  stripThumb.height = Math.round(STRIP_H * sc);
+  const ctx = stripThumb.getContext('2d');
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(strip, 0, 0, stripThumb.width, stripThumb.height);
+
+  resultWrap.style.display = 'block';
+  resultWrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ═══════════════════════════════════════
+   PRINT + SAVE
+═══════════════════════════════════════ */
+function doPrint() {
+  pimg.src = a4c.toDataURL('image/jpeg', 0.97);
+  psheet.style.display = 'block';
+  setTimeout(() => {
+    window.print();
+    setTimeout(() => { psheet.style.display = 'none'; }, 1200);
+  }, 350);
+}
+async function doSave() {
+  // Canvas → Blob (async, kein UI-Freeze)
+  const blob = await new Promise(r => a4c.toBlob(r, 'image/jpeg', 0.97));
+  const filename = 'fotobox_' + new Date().toISOString().slice(0,10) + '.jpg';
+
+  // ① iOS / Mobile: Web Share API → öffnet nativen Teilen-Dialog
+  //   → "In Fotos sichern" / AirDrop / etc.
+  if (navigator.canShare && navigator.canShare({ files: [new File([blob], filename, { type: 'image/jpeg' })] })) {
+    try {
+      await navigator.share({
+        files: [new File([blob], filename, { type: 'image/jpeg' })],
+        title: 'Fotobox'
+      });
+      return;
+    } catch(e) {
+      if (e.name === 'AbortError') return; // User hat abgebrochen
+    }
+  }
+
+  // ② Clipboard (PNG, iOS 16+ / Desktop Chrome)
+  if (window.ClipboardItem && navigator.clipboard?.write) {
+    try {
+      const png = await new Promise(r => a4c.toBlob(r, 'image/png', 1.0));
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
+      setStatus('📋 Bild in Zwischenablage kopiert!');
+      return;
+    } catch(e) { /* weiter zum Download */ }
+  }
+
+  // ③ Desktop: normaler Download-Link
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+/* ═══════════════════════════════════════
+   RESET
+═══════════════════════════════════════ */
+function resetAll() {
+  frames = [];
+  resultWrap.style.display = 'none';
+  for (let i = 0; i < SHOTS; i++) { setDot(i, ''); setMF(i, '', null); }
+  setStatus('Bereit — Tippe den Auslöser');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ═══════════════════════════════════════
+   INIT
+═══════════════════════════════════════ */
+startCam();
+</script>
+</body>
+</html>
