@@ -12,25 +12,45 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{background:var(--ink);color:var(--cream);font-family:'DM Mono',monospace;min-height:100dvh;overflow-x:hidden;touch-action:manipulation}
 
-header{display:flex;align-items:center;justify-content:space-between;padding:.65rem 1rem .55rem;border-bottom:1px solid var(--dim)}
-.brand{font-family:'DM Serif Display',serif;font-size:1.15rem;color:var(--amber)}
+header{display:flex;align-items:center;justify-content:space-between;padding:.45rem .8rem .4rem;border-bottom:1px solid var(--dim)}
+.brand{font-family:'DM Serif Display',serif;font-size:1rem;color:var(--amber)}
 .brand em{font-style:italic;color:var(--cream);font-size:.9em}
-.drow{display:flex;align-items:center;gap:.4rem;font-size:.52rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-.drow button{width:24px;height:24px;border-radius:50%;border:1px solid var(--dim);background:transparent;color:var(--cream);font-size:.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.drow{display:flex;align-items:center;gap:.35rem;font-size:.48rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.drow button{width:22px;height:22px;border-radius:50%;border:1px solid var(--dim);background:transparent;color:var(--cream);font-size:.8rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .drow button:active{background:var(--dim)}
-#dval{color:var(--amber);font-weight:500;min-width:1.8rem;text-align:center}
+#dval{color:var(--amber);font-weight:500;min-width:1.6rem;text-align:center}
 
-/* Viewfinder: ratio = STRIP_W/PHOTO_H = 706/748 ≈ 0.943 → matches print crop exactly */
-.vf-outer{padding:.65rem .65rem 0;max-width:480px;margin:0 auto;width:100%}
-.vf-box{position:relative;width:100%;aspect-ratio:706/748;background:#000;border-radius:3px;overflow:hidden;box-shadow:0 6px 28px rgba(0,0,0,.8)}
-.vf-box::before,.vf-box::after{content:'';position:absolute;width:15px;height:15px;border-color:var(--amber);border-style:solid;z-index:5;pointer-events:none}
-.vf-box::before{top:7px;left:7px;border-width:2px 0 0 2px}
-.vf-box::after{bottom:7px;right:7px;border-width:0 2px 2px 0}
+/* Counter row */
+.counter-row{display:flex;align-items:center;justify-content:center;gap:.5rem;
+  padding:.2rem .8rem;background:rgba(255,255,255,.03);border-bottom:1px solid var(--dim)}
+.counter-num{font-family:'DM Serif Display',serif;font-size:.75rem;color:var(--amber);
+  letter-spacing:.15em;font-style:italic}
+.counter-input-wrap{display:flex;align-items:center;gap:.25rem;
+  font-size:.42rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.counter-input-wrap input{width:2.8rem;padding:.15rem .3rem;
+  background:var(--ink);border:1px solid var(--dim);border-radius:2px;
+  color:var(--cream);font-family:'DM Mono',monospace;font-size:.55rem;
+  text-align:center;-moz-appearance:textfield}
+.counter-input-wrap input::-webkit-outer-spin-button,
+.counter-input-wrap input::-webkit-inner-spin-button{-webkit-appearance:none}
+
+/* Viewfinder — ratio matches print crop with white borders */
+.vf-outer{padding:.5rem .6rem 0;max-width:480px;margin:0 auto;width:100%}
+.vf-box{position:relative;width:100%;aspect-ratio:670/732;background:#000;border-radius:3px;overflow:hidden;box-shadow:0 5px 22px rgba(0,0,0,.8)}
+.vf-box::before,.vf-box::after{content:'';position:absolute;width:13px;height:13px;border-color:var(--amber);border-style:solid;z-index:5;pointer-events:none}
+.vf-box::before{top:6px;left:6px;border-width:2px 0 0 2px}
+.vf-box::after{bottom:6px;right:6px;border-width:0 2px 2px 0}
 video#vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;transform:scaleX(-1)}
-.cd-ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.38);z-index:10;pointer-events:none;opacity:0;transition:opacity .15s}
+
+/* Countdown — VOLLBILD */
+.cd-ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.25);z-index:10;pointer-events:none;opacity:0;transition:opacity .15s}
 .cd-ov.show{opacity:1}
-.cd-n{font-family:'DM Serif Display',serif;font-size:clamp(4.5rem,20vw,7.5rem);color:#fff;text-shadow:0 4px 20px rgba(0,0,0,.9);animation:pn .9s ease-in-out infinite}
-@keyframes pn{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+.cd-n{font-family:'DM Serif Display',serif;
+  font-size:min(88vw,88vh);   /* füllt das Bild komplett */
+  line-height:1;color:#fff;
+  text-shadow:0 0 40px rgba(0,0,0,.8),0 4px 24px rgba(0,0,0,.9);
+  animation:pn .9s ease-in-out infinite}
+@keyframes pn{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
 .rdy-ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.3);z-index:9;pointer-events:none;opacity:0;transition:opacity .2s}
 .rdy-ov.show{opacity:1}
 .rdy-w{font-family:'DM Serif Display',serif;font-style:italic;font-size:clamp(3rem,16vw,5.5rem);color:#fff;text-shadow:0 4px 18px rgba(0,0,0,.9);animation:rb .5s ease-in-out infinite alternate}
@@ -44,50 +64,48 @@ video#vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;disp
 .mf.done{border-color:rgba(255,255,255,.5)}
 .mf canvas{width:100%;height:100%;display:block}
 
-.dots{display:flex;justify-content:center;gap:9px;margin:.6rem 0 .1rem}
-.dot{width:9px;height:9px;border-radius:50%;background:var(--dim);border:1.5px solid #3a2a10;transition:all .2s}
+.dots{display:flex;justify-content:center;gap:8px;margin:.45rem 0 .05rem}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--dim);border:1.5px solid #3a2a10;transition:all .2s}
 .dot.active{background:var(--red);border-color:var(--red);animation:bl .45s infinite}
 .dot.done{background:var(--amber);border-color:var(--amber)}
 @keyframes bl{0%,100%{opacity:1}50%{opacity:.15}}
 
-.frow{display:flex;gap:.4rem;padding:.5rem .65rem .1rem;max-width:480px;margin:0 auto}
-.ftog{flex:1;padding:.44rem .3rem;border:1px solid var(--dim);border-radius:3px;background:transparent;color:var(--muted);font-family:'DM Mono',monospace;font-size:.52rem;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .18s;display:flex;flex-direction:column;align-items:center;gap:2px}
-.ftog .ico{font-size:.95rem;line-height:1}
+.frow{display:flex;gap:.35rem;padding:.4rem .6rem .05rem;max-width:480px;margin:0 auto}
+.ftog{flex:1;padding:.38rem .25rem;border:1px solid var(--dim);border-radius:3px;background:transparent;color:var(--muted);font-family:'DM Mono',monospace;font-size:.48rem;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:all .18s;display:flex;flex-direction:column;align-items:center;gap:1px}
+.ftog .ico{font-size:.85rem;line-height:1}
 .ftog:active{transform:scale(.95)}
 .ftog.on{border-color:var(--amber);background:rgba(200,120,10,.13);color:var(--amber)}
 
-.shutter-area{display:flex;flex-direction:column;align-items:center;margin:.6rem 0 .4rem}
-#btn-shoot{width:68px;height:68px;border-radius:50%;border:3px solid var(--amber);background:transparent;cursor:pointer;position:relative}
+.shutter-area{display:flex;flex-direction:column;align-items:center;margin:.45rem 0 .3rem}
+#btn-shoot{width:60px;height:60px;border-radius:50%;border:3px solid var(--amber);background:transparent;cursor:pointer;position:relative}
 #btn-shoot::after{content:'';position:absolute;inset:5px;border-radius:50%;background:var(--amber);transition:inset .12s}
-#btn-shoot:active::after{inset:9px}
+#btn-shoot:active::after{inset:8px}
 #btn-shoot:disabled{opacity:.28;cursor:default}
 #btn-shoot:disabled::after{background:#555}
-.slabel{font-size:.5rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-top:.32rem}
+.slabel{font-size:.45rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:.28rem}
 
-.logo-row{display:flex;align-items:center;gap:.65rem;cursor:pointer;margin:.1rem .65rem .45rem;padding:.5rem .75rem;border:1px dashed var(--dim);border-radius:3px;position:relative;overflow:hidden;max-width:calc(480px - 1.3rem)}
+.logo-row{display:flex;align-items:center;gap:.55rem;cursor:pointer;margin:.05rem .6rem .35rem;padding:.42rem .65rem;border:1px dashed var(--dim);border-radius:3px;position:relative;overflow:hidden;max-width:calc(480px - 1.2rem)}
 .logo-row:active{background:rgba(255,255,255,.03)}
-.lprev{width:42px;height:21px;border:1px solid var(--dim);border-radius:2px;background:#1a1510;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
+.lprev{width:38px;height:19px;border:1px solid var(--dim);border-radius:2px;background:#1a1510;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
 .lprev img{max-width:100%;max-height:100%;object-fit:contain;display:none}
-.lprev span{font-size:.45rem;color:var(--muted)}
-.ltxt{font-size:.52rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.lprev span{font-size:.42rem;color:var(--muted)}
+.ltxt{font-size:.48rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .ltxt b{display:block;color:var(--cream);margin-bottom:1px}
 #logo-inp{position:absolute;inset:0;opacity:0;cursor:pointer}
 
-#status{text-align:center;font-size:.52rem;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);padding:.3rem 1rem;min-height:1.3rem}
+#status{text-align:center;font-size:.48rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:.25rem 1rem;min-height:1.1rem}
 #status.ok{color:#4a9}
 #status.err{color:var(--red)}
 
-.result{display:none;padding:.55rem .65rem 1.5rem;max-width:480px;margin:0 auto}
-.rtitle{font-family:'DM Serif Display',serif;font-style:italic;font-size:.9rem;color:var(--amber);text-align:center;margin-bottom:.5rem}
-.thumb-wrap{display:flex;justify-content:center;margin-bottom:.65rem}
-#thumb-c{width:auto;max-height:36vh;display:block;border-radius:2px;box-shadow:0 4px 14px rgba(0,0,0,.5)}
-.rbtns{display:flex;flex-direction:column;gap:.45rem}
-.rbtn{width:100%;padding:.72rem 1rem;border:1px solid;border-radius:3px;background:transparent;font-family:'DM Mono',monospace;font-size:.58rem;letter-spacing:.16em;text-transform:uppercase;cursor:pointer;transition:all .18s;text-align:center}
+.result{display:none;padding:.45rem .6rem 1.2rem;max-width:480px;margin:0 auto}
+.rtitle{font-family:'DM Serif Display',serif;font-style:italic;font-size:.85rem;color:var(--amber);text-align:center;margin-bottom:.45rem}
+.thumb-wrap{display:flex;justify-content:center;margin-bottom:.55rem}
+#thumb-c{width:auto;max-height:32vh;display:block;border-radius:2px;box-shadow:0 4px 14px rgba(0,0,0,.5)}
+.rbtns{display:flex;flex-direction:column;gap:.4rem}
+.rbtn{width:100%;padding:.65rem 1rem;border:1px solid;border-radius:3px;background:transparent;font-family:'DM Mono',monospace;font-size:.55rem;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:all .18s;text-align:center}
 .rbtn:active{transform:scale(.98)}
 .r-print{border-color:var(--amber);color:var(--amber)}
 .r-print:active{background:var(--amber);color:var(--ink)}
-.r-cloud{border-color:#4a9;color:#4a9}
-.r-cloud:active{background:#4a9;color:var(--ink)}
 .r-save{border-color:#6a8;color:#6a8}
 .r-save:active{background:#6a8;color:var(--ink)}
 .r-again{border-color:var(--dim);color:var(--muted)}
@@ -107,8 +125,9 @@ video#vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;disp
 
 <header>
   <div class="brand">Foto<em>box</em></div>
-  <div style="display:flex;align-items:center;gap:.6rem">
-    <button id="btn-flip" onclick="flipCam()" style="width:36px;height:36px;border-radius:50%;border:1px solid var(--dim);background:transparent;color:var(--cream);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center" title="Kamera wechseln">🔄</button>
+  <div style="display:flex;align-items:center;gap:.5rem">
+    <button id="btn-flip" onclick="flipCam()" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--dim);background:transparent;color:var(--cream);font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center" title="Kamera wechseln">🔄</button>
+    <button id="btn-mirror" onclick="toggleMirror()" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--dim);background:transparent;color:var(--amber);font-size:.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center" title="Spiegelung an/aus">⇆</button>
     <div class="drow">
       <button onclick="chDelay(-1)">−</button>
       <span id="dval">5 s</span>
@@ -117,6 +136,15 @@ video#vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;disp
     </div>
   </div>
 </header>
+
+<!-- Zähler: fortlaufend, ganz klein -->
+<div class="counter-row">
+  <span class="counter-num" id="counter-display">#0001</span>
+  <div class="counter-input-wrap">
+    Start:
+    <input type="number" id="counter-start" value="1" min="1" max="9999" onchange="setCounterStart(this.value)">
+  </div>
+</div>
 
 <div class="vf-outer">
   <div class="vf-box">
@@ -162,8 +190,7 @@ video#vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;disp
   <div class="thumb-wrap"><canvas id="thumb-c"></canvas></div>
   <div class="rbtns">
     <button class="rbtn r-print" onclick="doPrint()">🖨 Drucken · 3× auf A4</button>
-    <button class="rbtn r-cloud" id="btn-cloud" onclick="doCloud()">☁ In Nextcloud speichern</button>
-    <button class="rbtn r-save"  onclick="doSave()">↓ Lokal speichern / Teilen</button>
+    <button class="rbtn r-save"  onclick="doSave()">↓ Speichern / Teilen</button>
     <button class="rbtn r-again" onclick="resetAll()">↺ Nochmal</button>
   </div>
 </div>
@@ -172,27 +199,29 @@ video#vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;disp
 <div id="psheet"><img id="pimg" src="" alt=""></div>
 
 <script>
-/* ─── NEXTCLOUD KONFIGURATION ──────────────── */
-const NC_URL   = 'https://cloud.vangunsteren.de';
-const NC_TOKEN = 'pKtkAPNGGqAQ2eW';
-
 /* ─── A4-LAYOUT  300 DPI = 2480×3508 px ────────
-   OUTER:  Außenrand = Druckerrand berücksichtigt (≈5mm)
-   INNER:  Abstand zwischen Streifen = 2×OUTER
-           → in der Mitte schneiden = je 5mm Spielraum
-   LOGO_H: Logo-Bereich am unteren Rand jedes Streifens
-
-   MATHEMATIK:
-   STRIP_W×3 + INNER×2 + OUTER×2 = A4W      ✓
-   STRIP_H + OUTER×2 = A4H                   ✓
-   PHOTO_H×4 + ROW_GAP×3 + LOGO_H = STRIP_H ✓
+   Weißer Rand zwischen Fotos: PHOTO_PAD (seitlich) + ROW_GAP (vertikal)
+   Foto-Aspect: (STRIP_W-2×PHOTO_PAD) / PHOTO_H ≈ 0.915:1 (leicht Querformat)
 ────────────────────────────────────────────── */
 const A4W=2480, A4H=3508;
-const OUTER=60, INNER=120, LOGO_H=380, ROW_GAP=8, SHOTS=4;
-const STRIP_W     = Math.floor((A4W - 2*OUTER - 2*INNER) / 3);  // = 706
-const STRIP_H     = A4H - 2*OUTER;                               // = 3388
-const PHOTO_AREA  = STRIP_H - LOGO_H;                            // = 3008
-const PHOTO_H     = Math.floor((PHOTO_AREA - (SHOTS-1)*ROW_GAP) / SHOTS); // = 746
+const OUTER=60, INNER=120, LOGO_H=360, ROW_GAP=22, PHOTO_PAD=18, TOP_PAD=18, SHOTS=4;
+const STRIP_W      = Math.floor((A4W - 2*OUTER - 2*INNER) / 3);   // 706
+const STRIP_H      = A4H - 2*OUTER;                                // 3388
+const PHOTO_AREA   = STRIP_H - LOGO_H - TOP_PAD;                  // 3010
+const PHOTO_H      = Math.floor((PHOTO_AREA - (SHOTS-1)*ROW_GAP) / SHOTS); // 736
+const PHOTO_W      = STRIP_W - 2*PHOTO_PAD;                       // 670
+
+/* ─── COUNTER ───────────────────────────────── */
+let shotCounter = 1;
+function setCounterStart(v){
+  shotCounter = Math.max(1, parseInt(v)||1);
+  updateCounterDisplay();
+}
+function updateCounterDisplay(){
+  document.getElementById('counter-display').textContent =
+    '#' + String(shotCounter).padStart(4,'0');
+}
+function counterStr(){ return '#' + String(shotCounter).padStart(4,'0') }
 
 /* ─── STATE ────────────────────────────────── */
 const DELAYS=[3,5,10]; let delayIdx=1;
@@ -246,7 +275,16 @@ function toggleVib(){
 }
 
 /* ─── KAMERA ────────────────────────────────── */
-let camFacing = 'user'; // 'user' = Front, 'environment' = Back
+let camFacing  = 'user';
+let doMirror   = true;   // Frontkamera: standardmäßig gespiegelt
+
+function toggleMirror(){
+  doMirror = !doMirror;
+  const btn = document.getElementById('btn-mirror');
+  btn.style.color     = doMirror ? 'var(--amber)' : 'var(--muted)';
+  btn.style.border    = `1px solid ${doMirror ? 'var(--amber)' : 'var(--dim)'}`;
+  vid.style.transform = (camFacing==='user' && doMirror) ? 'scaleX(-1)' : 'none';
+}
 
 async function startCam(){
   // Vorherigen Stream stoppen falls vorhanden
@@ -256,8 +294,7 @@ async function startCam(){
       video:{facingMode:camFacing,width:{ideal:3840},height:{ideal:2160}},audio:false
     });
     vid.srcObject=s; await vid.play();
-    // Spiegelung nur bei Frontkamera
-    vid.style.transform = camFacing==='user' ? 'scaleX(-1)' : 'none';
+    vid.style.transform = (camFacing==='user' && doMirror) ? 'scaleX(-1)' : 'none';
     setS('Bereit — Tippe den Auslöser','');
     document.getElementById('btn-shoot').disabled=false;
   }catch(e){ setS('Kamera nicht verfügbar','err') }
@@ -265,8 +302,12 @@ async function startCam(){
 
 function flipCam(){
   camFacing = camFacing==='user' ? 'environment' : 'user';
-  const btn = document.getElementById('btn-flip');
-  btn.style.transform = camFacing==='environment' ? 'scaleX(-1)' : '';
+  // Spiegelung: automatisch an bei Frontkamera, aus bei Rückkamera
+  doMirror  = camFacing==='user';
+  const mb  = document.getElementById('btn-mirror');
+  mb.style.color  = doMirror ? 'var(--amber)' : 'var(--muted)';
+  mb.style.border = `1px solid ${doMirror ? 'var(--amber)' : 'var(--dim)'}`;
+  document.getElementById('btn-flip').style.transform = camFacing==='environment' ? 'scaleX(-1)' : '';
   startCam();
 }
 
@@ -277,13 +318,12 @@ function captureFrame(){
   const c=document.createElement('canvas');
   c.width=vW; c.height=vH;
   const ctx=c.getContext('2d',{willReadFrequently:true});
-  if(camFacing==='user'){
-    // Frontkamera: gespiegelt zeichnen (Selfie-Ansicht)
+  if(camFacing==='user' && doMirror){
+    // Frontkamera gespiegelt — identisch mit Live-Vorschau
     ctx.save(); ctx.translate(vW,0); ctx.scale(-1,1);
     ctx.drawImage(vid,0,0,vW,vH);
     ctx.restore();
   } else {
-    // Rückkamera: normal
     ctx.drawImage(vid,0,0,vW,vH);
   }
   applyFilter(ctx,vW,vH);
@@ -329,7 +369,9 @@ async function shoot(){
     setDot(i,'done'); setMF(i,'done',frames[i]); await sleep(280);
   }
 
-  setS('Fertig!','ok'); buildResult(); busy=false; btn.disabled=false;
+  setS('Fertig!','ok'); buildResult();
+  shotCounter++; updateCounterDisplay();
+  busy=false; btn.disabled=false;
 }
 
 /* ─── LOGO ──────────────────────────────────── */
@@ -346,31 +388,43 @@ function loadLogo(e){
 function buildStrip(){
   const c=document.createElement('canvas'); c.width=STRIP_W; c.height=STRIP_H;
   const ctx=c.getContext('2d'); ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
-  ctx.fillStyle='#fff'; ctx.fillRect(0,0,STRIP_W,STRIP_H);
+  // Weißer Hintergrund — Ränder zwischen Fotos bleiben weiß
+  ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,STRIP_W,STRIP_H);
 
+  // 4 Fotos mit seitlichem Padding + sichtbarem weißem Abstand
   frames.forEach((src,i)=>{
-    const py=i*(PHOTO_H+ROW_GAP);
-    const sc=Math.max(STRIP_W/src.width,PHOTO_H/src.height);
+    const px=PHOTO_PAD;
+    const py=TOP_PAD + i*(PHOTO_H+ROW_GAP);
+    const sc=Math.max(PHOTO_W/src.width, PHOTO_H/src.height);
     const dw=src.width*sc, dh=src.height*sc;
-    ctx.save(); ctx.beginPath(); ctx.rect(0,py,STRIP_W,PHOTO_H); ctx.clip();
-    ctx.drawImage(src,(STRIP_W-dw)/2,py+(PHOTO_H-dh)/2,dw,dh);
+    ctx.save(); ctx.beginPath(); ctx.rect(px,py,PHOTO_W,PHOTO_H); ctx.clip();
+    ctx.drawImage(src, px+(PHOTO_W-dw)/2, py+(PHOTO_H-dh)/2, dw, dh);
     ctx.restore();
   });
 
-  // Logo
-  const ly=PHOTO_AREA;
-  ctx.fillStyle='#fff'; ctx.fillRect(0,ly,STRIP_W,LOGO_H);
+  // Logo-Bereich
+  const ly=TOP_PAD + SHOTS*(PHOTO_H+ROW_GAP) - ROW_GAP;
+  ctx.fillStyle='#ffffff'; ctx.fillRect(0,ly,STRIP_W,LOGO_H);
   if(logoImg){
-    const mW=STRIP_W*.82, mH=LOGO_H*.78;
+    const mW=STRIP_W*.82, mH=LOGO_H*.58;
     const sc=Math.min(mW/logoImg.width,mH/logoImg.height);
     const lw=logoImg.width*sc, lh=logoImg.height*sc;
-    ctx.drawImage(logoImg,(STRIP_W-lw)/2,ly+(LOGO_H-lh)/2,lw,lh);
+    ctx.drawImage(logoImg,(STRIP_W-lw)/2, ly+6+(mH-lh)/2, lw, lh);
   } else {
-    ctx.setLineDash([8,5]); ctx.strokeStyle='#e0e0e0'; ctx.lineWidth=2;
-    ctx.strokeRect(STRIP_W*.07,ly+LOGO_H*.1,STRIP_W*.86,LOGO_H*.8); ctx.setLineDash([]);
-    ctx.fillStyle='#d0d0d0'; ctx.font=`${Math.round(LOGO_H*.14)}px sans-serif`; ctx.textAlign='center';
-    ctx.fillText('LOGO',STRIP_W/2,ly+LOGO_H*.56);
+    ctx.setLineDash([6,4]); ctx.strokeStyle='#e8e8e8'; ctx.lineWidth=2;
+    ctx.strokeRect(STRIP_W*.08,ly+8,STRIP_W*.84,LOGO_H*.55); ctx.setLineDash([]);
+    ctx.fillStyle='#d8d8d8'; ctx.font=`${Math.round(LOGO_H*.13)}px sans-serif`; ctx.textAlign='center';
+    ctx.fillText('LOGO',STRIP_W/2,ly+LOGO_H*.38);
   }
+
+  // Fortlaufende Nummer — direkt unter dem Logo, minimaler Abstand
+  const numSize=Math.round(LOGO_H*.09);
+  ctx.fillStyle='#bbbbbb';
+  ctx.font=`${numSize}px 'Courier New',monospace`;
+  ctx.textAlign='center';
+  // Position: unter dem Logo-Bereich (58% + kleiner Gap)
+  ctx.fillText(counterStr(), STRIP_W/2, ly + Math.round(LOGO_H*.7));
+
   return c;
 }
 
@@ -426,135 +480,57 @@ function buildResult(){
 }
 
 /* ─── DRUCKEN ───────────────────────────────────────────────────
-   Kein JPEG-Foto-Print (falsche Skalierung auf iOS).
-   Stattdessen: HTML mit mm-Einheiten → browser druckt als Dokument.
+   buildStrip() erzeugt den fertigen Canvas (mit Rändern, Zähler, Logo).
+   3× nebeneinander in HTML mit mm-Einheiten → browser druckt als Dokument.
+   Alles synchron → window.open() bleibt im User-Gesture-Kontext (iOS).
 
-   WICHTIG: Alles synchron (toDataURL statt toBlob) damit
-   window.open() noch im User-Gesture-Kontext liegt → iOS lässt es durch.
-
-   Layout (mm):
-   A4: 210 × 297mm
-   Außenrand: 5mm je Seite → Innenbereich: 200 × 287mm
-   Abstand zwischen Streifen: 10mm (je 5mm Schnittzugabe)
-   Streifen-Breite: (200 - 2×10) / 3 = 60mm
-   Streifen-Höhe: 287mm
-   Logo-Bereich: 32mm (unten)
-   4 Fotos: (287 - 32) / 4 = 63.75mm je Foto
+   Strip-Dimensionen bei 300 DPI:
+   STRIP_W=706px → 706/300*25.4 = 59.76mm
+   STRIP_H=3388px → 3388/300*25.4 = 286.8mm
+   3 Streifen + 2×10mm Abstand + 2×5mm Rand = 179.3+20+10 = 209.3mm ≈ 210mm ✓
 ────────────────────────────────────────────────────────────────── */
 function doPrint() {
   if (!frames.length) return;
 
-  // ① Frames als Data-URLs — synchron, kein async-Gap
-  const fUrls = frames.map(c => c.toDataURL('image/jpeg', 0.92));
+  // buildStrip() hat bereits: Ränder, Abstände, Zähler, Logo — alles drin
+  const stripCanvas = buildStrip();
+  const stripUrl    = stripCanvas.toDataURL('image/jpeg', 0.95);
 
-  // ② Logo-URL (falls vorhanden)
-  let logoUrl = '';
-  if (logoImg) {
-    const lc = document.createElement('canvas');
-    lc.width = logoImg.width; lc.height = logoImg.height;
-    lc.getContext('2d').drawImage(logoImg, 0, 0);
-    logoUrl = lc.toDataURL('image/png');
-  }
+  // Exakte mm-Maße aus Pixel-Konstanten berechnen
+  const mmW = (STRIP_W / 300 * 25.4).toFixed(2);  // 59.76mm
+  const mmH = (STRIP_H / 300 * 25.4).toFixed(2);  // 286.81mm
 
-  // ③ Ein Streifen als HTML (3× wiederholt)
-  const strip = `<div class="strip">
-    ${fUrls.map(u => `<div class="photo"><img src="${u}"></div>`).join('')}
-    <div class="logo">${logoUrl
-      ? `<img src="${logoUrl}">`
-      : `<div class="logo-ph">LOGO</div>`
-    }</div>
-  </div>`;
-
-  // ④ Vollständiges A4-HTML mit mm-Einheiten
   const html = `<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8">
+<html><head><meta charset="UTF-8">
 <style>
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  *{box-sizing:border-box;margin:0;padding:0}
   @page{margin:0;size:210mm 297mm portrait}
   html{width:210mm;height:297mm;overflow:hidden}
   body{
-    width:210mm;height:297mm;overflow:hidden;
-    background:white;display:flex;flex-direction:row;
+    width:210mm;height:297mm;overflow:hidden;background:white;
+    display:flex;align-items:flex-start;
     padding:5mm;gap:10mm;
     page-break-inside:avoid;break-inside:avoid;
   }
-  .strip{
-    width:60mm;height:287mm;flex-shrink:0;
-    display:flex;flex-direction:column;overflow:hidden;
-    page-break-inside:avoid;break-inside:avoid;
-  }
-  .photo{
-    flex:1;overflow:hidden;min-height:0;
-    /* Cover-crop: Bild füllt Zelle komplett */
-  }
-  .photo img{
-    width:100%;height:100%;
-    object-fit:cover;display:block;
-  }
-  .logo{
-    height:32mm;flex-shrink:0;
-    display:flex;align-items:center;justify-content:center;
-    overflow:hidden;
-  }
-  .logo img{max-width:90%;max-height:90%;object-fit:contain;display:block}
-  .logo-ph{
-    font-family:sans-serif;font-size:11pt;color:#ccc;
-    border:1px dashed #e0e0e0;padding:6mm 12mm;
-  }
-  /* Schnittlinie zwischen Streifen */
-  .strip:not(:last-child)::after{
-    /* Kein echter Inhalt — Schnittlinie ist der Abstand (gap:10mm) */
-    content:'';
-  }
+  .s{width:${mmW}mm;height:${mmH}mm;flex-shrink:0;overflow:hidden}
+  .s img{width:100%;height:100%;display:block;object-fit:fill}
 </style>
 </head>
 <body>
-  ${strip}${strip}${strip}
+  <div class="s"><img src="${stripUrl}"></div>
+  <div class="s"><img src="${stripUrl}"></div>
+  <div class="s"><img src="${stripUrl}"></div>
   <script>
-    // Drucken sobald alle Bilder geladen
-    var imgs=document.images, total=imgs.length, loaded=0;
-    function tryPrint(){if(++loaded>=total)window.print();}
-    if(total===0){window.print();}
-    else{for(var i=0;i<total;i++){
-      if(imgs[i].complete)tryPrint();
-      else imgs[i].onload=imgs[i].onerror=tryPrint;
-    }}
+    var imgs=document.images,n=imgs.length,d=0;
+    function p(){if(++d>=n)window.print();}
+    if(!n)window.print();
+    else for(var i=0;i<n;i++){if(imgs[i].complete)p();else{imgs[i].onload=p;imgs[i].onerror=p;}}
   <\/script>
-</body>
-</html>`;
+</body></html>`;
 
-  // ⑤ Neues Fenster synchron öffnen — noch im User-Gesture-Kontext → iOS erlaubt es
   const w = window.open('', '_blank');
-  if (w) {
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
-  } else {
-    // Popup geblockt: Bild als JPEG teilen → Nutzer druckt aus Fotos
-    setS('Popup blockiert — bitte "Lokal speichern" → aus Fotos drucken', 'err');
-  }
-}
-
-/* ─── NEXTCLOUD UPLOAD (WebDAV auf Public Share) */
-async function doCloud(){
-  const btn=document.getElementById('btn-cloud');
-  btn.textContent='☁ Lädt hoch …'; btn.disabled=true;
-  try{
-    const blob=await new Promise(r=>document.getElementById('a4c').toBlob(r,'image/jpeg',0.97));
-    const fn=fname();
-    const res=await fetch(`${NC_URL}/public.php/webdav/${fn}`,{
-      method:'PUT',
-      headers:{'Authorization':'Basic '+btoa(NC_TOKEN+':'),'Content-Type':'image/jpeg'},
-      body:blob
-    });
-    if(res.ok||res.status===201||res.status===204){
-      setS('☁ Gespeichert: '+fn,'ok'); btn.textContent='☁ Erneut hochladen';
-    } else { throw new Error('HTTP '+res.status) }
-  }catch(e){
-    setS('Upload fehlgeschlagen: '+e.message,'err'); btn.textContent='☁ Erneut versuchen';
-  }
-  btn.disabled=false;
+  if (w) { w.document.open(); w.document.write(html); w.document.close(); }
+  else { setS('Popup blockiert → "Speichern" → aus Fotos drucken', 'err'); }
 }
 
 /* ─── LOKAL SPEICHERN / TEILEN ──────────────── */
@@ -574,8 +550,6 @@ async function doSave(){
 function resetAll(){
   frames=[]; busy=false;
   document.getElementById('result').style.display='none';
-  document.getElementById('btn-cloud').textContent='☁ In Nextcloud speichern';
-  document.getElementById('btn-cloud').disabled=false;
   for(let i=0;i<SHOTS;i++){setDot(i,'');setMF(i,'',null)}
   setS('Bereit — Tippe den Auslöser','');
   window.scrollTo({top:0,behavior:'smooth'});
