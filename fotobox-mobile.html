@@ -127,7 +127,6 @@ video#vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;disp
   <div class="brand">Foto<em>box</em></div>
   <div style="display:flex;align-items:center;gap:.5rem">
     <button id="btn-flip" onclick="flipCam()" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--dim);background:transparent;color:var(--cream);font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center" title="Kamera wechseln">🔄</button>
-    <button id="btn-mirror" onclick="toggleMirror()" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--dim);background:transparent;color:var(--amber);font-size:.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center" title="Spiegelung an/aus">⇆</button>
     <div class="drow">
       <button onclick="chDelay(-1)">−</button>
       <span id="dval">5 s</span>
@@ -274,42 +273,39 @@ function toggleVib(){
   updateLiveFilter();
 }
 
-/* ─── KAMERA ────────────────────────────────── */
-let camFacing  = 'user';
-let doMirror   = true;   // Frontkamera: standardmäßig gespiegelt
+/* ─── KAMERA ─────────────────────────────────────────────────────
+   Spiegelung: automatisch basierend auf camFacing.
+   - 'user' (Selfie/Front):  Preview gespiegelt (CSS) + Capture gespiegelt (Canvas)
+   - 'environment' (Rück):   Kein Spiegeln in Preview oder Capture
+   
+   ctx.drawImage(vid) liest den rohen Video-Stream — OHNE CSS-Transform.
+   Deshalb muss die Spiegelung explizit im Canvas gemacht werden.
+────────────────────────────────────────────────────────────────── */
+let camFacing = 'user';
 
-function toggleMirror(){
-  doMirror = !doMirror;
-  const btn = document.getElementById('btn-mirror');
-  btn.style.color     = doMirror ? 'var(--amber)' : 'var(--muted)';
-  btn.style.border    = `1px solid ${doMirror ? 'var(--amber)' : 'var(--dim)'}`;
-  vid.style.transform = (camFacing==='user' && doMirror) ? 'scaleX(-1)' : 'none';
-}
+function isSelfie(){ return camFacing === 'user'; }
 
 async function startCam(){
-  // Vorherigen Stream stoppen falls vorhanden
   if(vid.srcObject) vid.srcObject.getTracks().forEach(t=>t.stop());
   try{
     const s=await navigator.mediaDevices.getUserMedia({
       video:{facingMode:camFacing,width:{ideal:3840},height:{ideal:2160}},audio:false
     });
     vid.srcObject=s; await vid.play();
-    vid.style.transform = (camFacing==='user' && doMirror) ? 'scaleX(-1)' : 'none';
+    // Preview: gespiegelt bei Selfie (CSS), normal bei Rückkamera
+    vid.style.transform = isSelfie() ? 'scaleX(-1)' : 'none';
     setS('Bereit — Tippe den Auslöser','');
     document.getElementById('btn-shoot').disabled=false;
   }catch(e){ setS('Kamera nicht verfügbar','err') }
 }
 
 function flipCam(){
-  camFacing = camFacing==='user' ? 'environment' : 'user';
-  // Spiegelung: automatisch an bei Frontkamera, aus bei Rückkamera
-  doMirror  = camFacing==='user';
-  const mb  = document.getElementById('btn-mirror');
-  mb.style.color  = doMirror ? 'var(--amber)' : 'var(--muted)';
-  mb.style.border = `1px solid ${doMirror ? 'var(--amber)' : 'var(--dim)'}`;
-  document.getElementById('btn-flip').style.transform = camFacing==='environment' ? 'scaleX(-1)' : '';
+  camFacing = isSelfie() ? 'environment' : 'user';
+  document.getElementById('btn-flip').style.transform = isSelfie() ? '' : 'scaleX(-1)';
   startCam();
 }
+
+function toggleMirror(){} // entfernt — Spiegelung ist automatisch
 
 /* ─── CAPTURE ───────────────────────────────────
    Filter per Pixel-Manipulation — zuverlässig auf iOS 12+  */
@@ -318,14 +314,9 @@ function captureFrame(){
   const c=document.createElement('canvas');
   c.width=vW; c.height=vH;
   const ctx=c.getContext('2d',{willReadFrequently:true});
-  if(camFacing==='user' && doMirror){
-    // Frontkamera gespiegelt — identisch mit Live-Vorschau
-    ctx.save(); ctx.translate(vW,0); ctx.scale(-1,1);
-    ctx.drawImage(vid,0,0,vW,vH);
-    ctx.restore();
-  } else {
-    ctx.drawImage(vid,0,0,vW,vH);
-  }
+  // Kein Spiegeln — roher Video-Stream ist bereits in korrekter Orientierung.
+  // Die CSS-Spiegelung (scaleX(-1)) betrifft nur die Anzeige, nicht den Stream.
+  ctx.drawImage(vid,0,0,vW,vH);
   applyFilter(ctx,vW,vH);
   return c;
 }
@@ -556,6 +547,22 @@ function resetAll(){
 }
 
 startCam();
+
+// ─── Lautstärketasten als Auslöser ───────────────────────────────
+// Funktioniert auf Android zuverlässig.
+// iOS blockiert das leider per System — dort ist kein Workaround möglich.
+// Tastatur-Auslöser (Leertaste, Enter, Pfeiltasten) funktionieren überall.
+document.addEventListener('keydown', e => {
+  const ausloeser = [
+    'AudioVolumeUp','AudioVolumeDown',  // Android Standard
+    'VolumeUp','VolumeDown',             // ältere Android-Browser
+    ' ','Enter','ArrowUp','ArrowDown'    // Tastatur / Bluetooth-Fernauslöser
+  ];
+  if (ausloeser.includes(e.key)) {
+    e.preventDefault(); // Lautstärke nicht ändern
+    if (!busy && !document.getElementById('btn-shoot').disabled) shoot();
+  }
+});
 </script>
 </body>
 </html>
