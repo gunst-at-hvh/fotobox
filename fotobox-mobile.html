@@ -487,46 +487,39 @@ function buildA4(){
 function buildResult(){
   buildA4();
   const strip=buildStrip();
+
+  // Thumbnail
   const thumb=document.getElementById('thumb-c');
-  // Thumbnail bei 25% Auflösung — CSS max-height:36vh skaliert ihn auf Bildschirm
   thumb.width=Math.round(STRIP_W*.25); thumb.height=Math.round(STRIP_H*.25);
   const ctx=thumb.getContext('2d'); ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
   ctx.drawImage(strip,0,0,thumb.width,thumb.height);
+
+  // Print-Frame JETZT befüllen — Bilder laden im Hintergrund während
+  // der Nutzer die Vorschau anschaut. doPrint() muss dann nichts mehr
+  // berechnen → window.print() folgt sofort auf den Tap → iOS erlaubt es.
+  const mmW=(STRIP_W/300*25.4).toFixed(2);
+  const mmH=(STRIP_H/300*25.4).toFixed(2);
+  const url=strip.toDataURL('image/jpeg',0.95);
+  const sd=`<div style="width:${mmW}mm;height:${mmH}mm;flex-shrink:0;overflow:hidden"><img src="${url}" style="width:100%;height:100%;display:block;object-fit:fill"></div>`;
+  document.getElementById('print-frame').innerHTML=
+    `<div style="display:flex;flex-direction:row;align-items:flex-start;padding:5mm;gap:10mm;width:210mm;height:297mm;background:white;box-sizing:border-box;overflow:hidden">${sd.repeat(3)}</div>`;
+
   document.getElementById('result').style.display='block';
   document.getElementById('result').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
-/* ─── DRUCKEN — In-Page (kein window.open) ──────
-   Funktioniert in iOS Standalone Web App.
-   Inhalt → #print-frame → window.print() → afterprint aufräumen.
-   afterprint feuert bei Drucken UND Abbrechen → man bleibt in der App. */
-function doPrint() {
-  if (!frames.length) return;
-
-  const stripCanvas = buildStrip();
-  const stripUrl    = stripCanvas.toDataURL('image/jpeg', 0.95);
-  const mmW = (STRIP_W / 300 * 25.4).toFixed(2);
-  const mmH = (STRIP_H / 300 * 25.4).toFixed(2);
-
-  const stripDiv = `<div style="width:${mmW}mm;height:${mmH}mm;flex-shrink:0;overflow:hidden">
-    <img src="${stripUrl}" style="width:100%;height:100%;display:block;object-fit:fill">
-  </div>`;
-
-  const pf = document.getElementById('print-frame');
-  pf.innerHTML = `<div style="
-    display:flex;flex-direction:row;align-items:flex-start;
-    padding:5mm;gap:10mm;
-    width:210mm;height:297mm;
-    background:white;box-sizing:border-box;overflow:hidden">
-    ${stripDiv.repeat(3)}
-  </div>`;
-
-  // Aufräumen nach Druck-Dialog (egal ob gedruckt oder abgebrochen)
-  window.addEventListener('afterprint', function cleanup() {
-    pf.innerHTML = '';
-    window.removeEventListener('afterprint', cleanup);
+/* ─── DRUCKEN ───────────────────────────────────
+   Print-Frame wurde in buildResult() bereits befüllt.
+   doPrint() ruft nur noch window.print() auf — kein
+   Canvas, keine Berechnung, sofort nach dem Tap.
+   → iOS blockiert es NICHT als "automatisch".
+   afterprint: feuert bei Drucken UND Abbrechen.    */
+function doPrint(){
+  const pf=document.getElementById('print-frame');
+  if(!pf.innerHTML) return;
+  window.addEventListener('afterprint',function cleanup(){
+    window.removeEventListener('afterprint',cleanup);
   });
-
   window.print();
 }
 
