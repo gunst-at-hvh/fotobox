@@ -111,13 +111,12 @@ video#vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;disp
 .r-again{border-color:var(--dim);color:var(--muted)}
 
 #a4c{display:none}
-#psheet{display:none;position:fixed;inset:0;background:#fff;z-index:9999}
-#psheet img{width:100%;height:100%;object-fit:contain}
+#print-frame{display:none}
 @media print{
-  body>*{display:none!important}
-  #psheet{display:block!important;position:fixed;inset:0}
-  #psheet img{width:100%;height:100%;object-fit:fill}
   @page{margin:0;size:A4 portrait}
+  html,body{width:210mm!important;height:297mm!important;margin:0!important;padding:0!important;overflow:hidden!important}
+  body>*:not(#print-frame){display:none!important}
+  #print-frame{display:block!important;width:210mm;height:297mm;background:white}
 }
 </style>
 </head>
@@ -142,6 +141,12 @@ video#vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;disp
   <div class="counter-input-wrap">
     Start:
     <input type="number" id="counter-start" value="1" min="1" max="9999" onchange="setCounterStart(this.value)">
+  </div>
+  <!-- Set-Schalter -->
+  <div style="display:flex;gap:2px;margin-left:.4rem">
+    <button id="sb2" onclick="setSet(2)" style="padding:.12rem .32rem;font-size:.48rem;font-family:'DM Mono',monospace;letter-spacing:.05em;border:1px solid var(--dim);background:transparent;color:var(--muted);border-radius:2px;cursor:pointer">2×</button>
+    <button id="sb3" onclick="setSet(3)" style="padding:.12rem .32rem;font-size:.48rem;font-family:'DM Mono',monospace;letter-spacing:.05em;border:1px solid var(--amber);background:var(--amber);color:var(--ink);border-radius:2px;cursor:pointer">3×</button>
+    <button id="sb4" onclick="setSet(4)" style="padding:.12rem .32rem;font-size:.48rem;font-family:'DM Mono',monospace;letter-spacing:.05em;border:1px solid var(--dim);background:transparent;color:var(--muted);border-radius:2px;cursor:pointer">4×</button>
   </div>
 </div>
 
@@ -194,8 +199,8 @@ video#vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;disp
   </div>
 </div>
 
-<canvas id="a4c"></canvas>
-<div id="psheet"><img id="pimg" src="" alt=""></div>
+<canvas id="a4c" style="display:none"></canvas>
+<div id="print-frame"></div>
 
 <script>
 /* ─── A4-LAYOUT  300 DPI = 2480×3508 px ────────
@@ -204,11 +209,32 @@ video#vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;disp
 ────────────────────────────────────────────── */
 const A4W=2480, A4H=3508;
 const OUTER=60, INNER=120, LOGO_H=360, ROW_GAP=22, PHOTO_PAD=18, TOP_PAD=18, SHOTS=4;
-const STRIP_W      = Math.floor((A4W - 2*OUTER - 2*INNER) / 3);   // 706
-const STRIP_H      = A4H - 2*OUTER;                                // 3388
-const PHOTO_AREA   = STRIP_H - LOGO_H - TOP_PAD;                  // 3010
-const PHOTO_H      = Math.floor((PHOTO_AREA - (SHOTS-1)*ROW_GAP) / SHOTS); // 736
-const PHOTO_W      = STRIP_W - 2*PHOTO_PAD;                       // 670
+
+// Dynamisch — werden von computeLayout() gesetzt
+let setCount=3, STRIP_W, STRIP_H, PHOTO_AREA, PHOTO_H, PHOTO_W;
+
+function computeLayout(){
+  STRIP_W    = Math.floor((A4W - 2*OUTER - (setCount-1)*INNER) / setCount);
+  STRIP_H    = A4H - 2*OUTER;                                    // 3388
+  PHOTO_AREA = STRIP_H - LOGO_H - TOP_PAD;                      // 3010
+  PHOTO_H    = Math.floor((PHOTO_AREA - (SHOTS-1)*ROW_GAP) / SHOTS);
+  PHOTO_W    = STRIP_W - 2*PHOTO_PAD;
+  const vf=document.getElementById('vf');
+  if(vf) vf.style.aspectRatio = PHOTO_W+'/'+PHOTO_H;
+}
+computeLayout();
+
+function setSet(n){
+  setCount=n;
+  [2,3,4].forEach(i=>{
+    const b=document.getElementById('sb'+i);
+    if(!b)return;
+    b.style.background   = i===n ? 'var(--amber)' : 'transparent';
+    b.style.color        = i===n ? 'var(--ink)'   : 'var(--muted)';
+    b.style.borderColor  = i===n ? 'var(--amber)' : 'var(--dim)';
+  });
+  computeLayout();
+}
 
 /* ─── COUNTER ───────────────────────────────── */
 let shotCounter = 1;
@@ -470,58 +496,38 @@ function buildResult(){
   document.getElementById('result').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
-/* ─── DRUCKEN ───────────────────────────────────────────────────
-   buildStrip() erzeugt den fertigen Canvas (mit Rändern, Zähler, Logo).
-   3× nebeneinander in HTML mit mm-Einheiten → browser druckt als Dokument.
-   Alles synchron → window.open() bleibt im User-Gesture-Kontext (iOS).
-
-   Strip-Dimensionen bei 300 DPI:
-   STRIP_W=706px → 706/300*25.4 = 59.76mm
-   STRIP_H=3388px → 3388/300*25.4 = 286.8mm
-   3 Streifen + 2×10mm Abstand + 2×5mm Rand = 179.3+20+10 = 209.3mm ≈ 210mm ✓
-────────────────────────────────────────────────────────────────── */
+/* ─── DRUCKEN — In-Page (kein window.open) ──────
+   Funktioniert in iOS Standalone Web App.
+   Inhalt → #print-frame → window.print() → afterprint aufräumen.
+   afterprint feuert bei Drucken UND Abbrechen → man bleibt in der App. */
 function doPrint() {
   if (!frames.length) return;
 
-  // buildStrip() hat bereits: Ränder, Abstände, Zähler, Logo — alles drin
   const stripCanvas = buildStrip();
   const stripUrl    = stripCanvas.toDataURL('image/jpeg', 0.95);
+  const mmW = (STRIP_W / 300 * 25.4).toFixed(2);
+  const mmH = (STRIP_H / 300 * 25.4).toFixed(2);
 
-  // Exakte mm-Maße aus Pixel-Konstanten berechnen
-  const mmW = (STRIP_W / 300 * 25.4).toFixed(2);  // 59.76mm
-  const mmH = (STRIP_H / 300 * 25.4).toFixed(2);  // 286.81mm
+  const stripDiv = `<div style="width:${mmW}mm;height:${mmH}mm;flex-shrink:0;overflow:hidden">
+    <img src="${stripUrl}" style="width:100%;height:100%;display:block;object-fit:fill">
+  </div>`;
 
-  const html = `<!DOCTYPE html>
-<html><head><meta charset="UTF-8">
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  @page{margin:0;size:210mm 297mm portrait}
-  html{width:210mm;height:297mm;overflow:hidden}
-  body{
-    width:210mm;height:297mm;overflow:hidden;background:white;
-    display:flex;align-items:flex-start;
+  const pf = document.getElementById('print-frame');
+  pf.innerHTML = `<div style="
+    display:flex;flex-direction:row;align-items:flex-start;
     padding:5mm;gap:10mm;
-    page-break-inside:avoid;break-inside:avoid;
-  }
-  .s{width:${mmW}mm;height:${mmH}mm;flex-shrink:0;overflow:hidden}
-  .s img{width:100%;height:100%;display:block;object-fit:fill}
-</style>
-</head>
-<body>
-  <div class="s"><img src="${stripUrl}"></div>
-  <div class="s"><img src="${stripUrl}"></div>
-  <div class="s"><img src="${stripUrl}"></div>
-  <script>
-    var imgs=document.images,n=imgs.length,d=0;
-    function p(){if(++d>=n)window.print();}
-    if(!n)window.print();
-    else for(var i=0;i<n;i++){if(imgs[i].complete)p();else{imgs[i].onload=p;imgs[i].onerror=p;}}
-  <\/script>
-</body></html>`;
+    width:210mm;height:297mm;
+    background:white;box-sizing:border-box;overflow:hidden">
+    ${stripDiv.repeat(3)}
+  </div>`;
 
-  const w = window.open('', '_blank');
-  if (w) { w.document.open(); w.document.write(html); w.document.close(); }
-  else { setS('Popup blockiert → "Speichern" → aus Fotos drucken', 'err'); }
+  // Aufräumen nach Druck-Dialog (egal ob gedruckt oder abgebrochen)
+  window.addEventListener('afterprint', function cleanup() {
+    pf.innerHTML = '';
+    window.removeEventListener('afterprint', cleanup);
+  });
+
+  window.print();
 }
 
 /* ─── LOKAL SPEICHERN / TEILEN ──────────────── */
